@@ -1,16 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { signOut, useSession } from "next-auth/react";
 
 type SiteheaderProps = {
   search: string;
   onSearchChange: (value: string) => void;
   favoriteCount: number;
-  onFavoriteClick: () => void;
+  favoriteError?: string;
 };
 
 const navigationItems = [
   { label: "동네마켓", href: "/market" },
+  { label: "채팅", href: "/chatlobby" },
   { label: "안전거래", href: "/safe-deal" },
   { label: "커뮤니티", href: "/community" },
 ];
@@ -19,8 +21,10 @@ export default function Siteheader({
   search,
   onSearchChange,
   favoriteCount,
-  onFavoriteClick,
+  favoriteError,
 }: SiteheaderProps) {
+  const { data: session, status } = useSession();
+
   return (
     <header className="sticky top-0 z-20 border-b border-[#e9ede7] bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-6 gap-y-3 px-5 py-4 sm:px-8">
@@ -35,12 +39,33 @@ export default function Siteheader({
           <span>reown</span>
         </Link>
 
-        <Link
-          className="order-2 ml-auto rounded-lg bg-[#3c7653] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#28583d] md:order-4 md:ml-0"
-          href="/login"
-        >
-          로그인
-        </Link>
+        {status === "authenticated" ? (
+          <div className="order-2 ml-auto flex items-center gap-3 md:order-4 md:ml-0">
+            <span className="hidden text-xs font-semibold text-[#647064] sm:inline">
+              {session.user?.name}님
+            </span>
+            <Link
+              className="text-sm font-bold text-[#3c7653] transition hover:text-[#28583d]"
+              href="/mypage"
+            >
+              마이페이지
+            </Link>
+            <button
+              className="rounded-lg bg-[#3c7653] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#28583d]"
+              onClick={() => signOut({ redirectTo: "/" })}
+              type="button"
+            >
+              로그아웃
+            </button>
+          </div>
+        ) : (
+          <Link
+            className="order-2 ml-auto rounded-lg bg-[#3c7653] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#28583d] md:order-4 md:ml-0"
+            href="/login"
+          >
+            로그인
+          </Link>
+        )}
 
         <label className="order-3 flex h-10 w-full items-center gap-2 rounded-lg border border-[#e6ebe4] bg-[#f8faf7] px-3 text-[#7b8579] transition focus-within:border-[#9db99e] focus-within:bg-white md:order-3 md:ml-auto md:w-64 lg:w-72">
           <svg
@@ -80,11 +105,10 @@ export default function Siteheader({
               {item.label}
             </Link>
           ))}
-          <button
+          <Link
             aria-label={`찜한 상품 ${favoriteCount}개`}
             className="inline-flex items-center gap-1 py-1 transition hover:text-[#315d3d]"
-            onClick={onFavoriteClick}
-            type="button"
+            href="/favorite"
           >
             <svg
               aria-hidden="true"
@@ -100,9 +124,14 @@ export default function Siteheader({
             <span className="rounded-full bg-[#edf3e9] px-2 py-0.5 text-xs font-bold text-[#3c7653]">
               {favoriteCount}
             </span>
-          </button>
+          </Link>
         </nav>
       </div>
+      {favoriteError ? (
+        <p className="border-t border-amber-100 bg-amber-50 px-5 py-2 text-center text-xs text-amber-800" role="alert">
+          {favoriteError}
+        </p>
+      ) : null}
     </header>
   );
 }

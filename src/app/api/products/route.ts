@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { auth } from "@/auth";
 import { createProduct, getProducts } from "@/lib/products-db";
 
 export async function GET() {
@@ -16,6 +17,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { message: "로그인 후 상품을 등록해 주세요." },
+        { status: 401 },
+      );
+    }
+
     const body = (await request.json()) as {
       title?: unknown;
       category?: unknown;
@@ -26,6 +35,8 @@ export async function POST(request: Request) {
       background?: unknown;
       images?: unknown;
     };
+    const sellerName =
+      session.user.name?.trim() || session.user.email?.trim() || "회원";
 
     const product = await createProduct({
       title: typeof body.title === "string" ? body.title : "",
@@ -38,6 +49,8 @@ export async function POST(request: Request) {
       images: Array.isArray(body.images)
         ? body.images.filter((image): image is string => typeof image === "string")
         : undefined,
+      sellerId: session.user.id,
+      sellerName,
     });
 
     return NextResponse.json({ product }, { status: 201 });

@@ -1,3 +1,5 @@
+export type ProductStatus = "selling" | "sold";
+
 export type Product = {
   id: string;
   createdAt: string;
@@ -9,8 +11,11 @@ export type Product = {
   time: string;
   icon: string;
   background: string;
+  status: ProductStatus;
   description?: string;
   images?: string[];
+  sellerId?: string;
+  sellerName?: string;
 };
 
 export type ProductSortOption =

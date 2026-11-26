@@ -2,9 +2,10 @@ import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { NextResponse, type NextRequest } from "next/server";
+import { auth } from "@/auth";
 
 const MAX_IMAGES = 5;
-const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -15,6 +16,14 @@ const ALLOWED_IMAGE_TYPES: Record<string, string> = {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { message: "로그인 후 상품을 등록해 주세요." },
+        { status: 401 },
+      );
+    }
+
     const formData = await request.formData();
     const files = formData
       .getAll("images")
@@ -53,7 +62,7 @@ export async function POST(request: NextRequest) {
 
       if (file.size > MAX_IMAGE_SIZE) {
         return NextResponse.json(
-          { message: "각 이미지는 2MB 이하여야 합니다." },
+          { message: "각 이미지는 5MB 이하여야 합니다." },
           { status: 400 },
         );
       }

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getProductById } from "@/lib/products-db";
 import { formatPrice } from "@/lib/products";
+import ProductActions from "./ProductActions";
 
 type ProductDetailPageProps = {
   params: Promise<{ id: string }>;
@@ -22,16 +23,24 @@ async function ProductArticle({
 
   const images = product.images ?? [];
   const [mainImage, ...otherImages] = images;
+  const isSold = product.status === "sold";
 
   return (
     <article className="overflow-hidden rounded-3xl border border-[#e7ece5] bg-white shadow-[0_14px_40px_rgba(63,95,71,0.05)]">
       {mainImage ? (
         <div className="bg-[#f3f5f1]">
-          <img
-            alt={product.title}
-            className="aspect-[16/10] w-full object-cover sm:aspect-[16/8]"
-            src={mainImage}
-          />
+          <div className="relative">
+            <img
+              alt={product.title}
+              className={`aspect-[16/10] w-full object-cover sm:aspect-[16/8] ${isSold ? "brightness-75" : ""}`}
+              src={mainImage}
+            />
+            {isSold ? (
+              <span className="absolute left-4 top-4 rounded-full bg-[#263229]/85 px-3 py-1.5 text-xs font-bold text-white">
+                품절
+              </span>
+            ) : null}
+          </div>
           {otherImages.length > 0 ? (
             <div className="grid grid-cols-4 gap-2 border-t border-[#edf0eb] p-3 sm:p-4">
               {otherImages.map((image, index) => (
@@ -48,11 +57,16 @@ async function ProductArticle({
       ) : (
         <div
           aria-label={product.title}
-          className="grid aspect-[16/10] place-items-center text-8xl sm:aspect-[16/8] sm:text-9xl"
+          className="relative grid aspect-[16/10] place-items-center text-8xl sm:aspect-[16/8] sm:text-9xl"
           role="img"
           style={{ background: product.background }}
         >
           {product.icon}
+          {isSold ? (
+            <span className="absolute left-4 top-4 rounded-full bg-[#263229]/85 px-3 py-1.5 text-xs font-bold text-white">
+              품절
+            </span>
+          ) : null}
         </div>
       )}
 
@@ -62,6 +76,15 @@ async function ProductArticle({
             <div className="mb-3 flex flex-wrap items-center gap-2">
               <span className="inline-flex rounded-md bg-[#edf3e9] px-2.5 py-1 text-[11px] font-bold text-[#3c7653]">
                 {product.category}
+              </span>
+              <span
+                className={`inline-flex rounded-md px-2.5 py-1 text-[11px] font-bold ${
+                  isSold
+                    ? "bg-[#f1f3f0] text-[#6b7568]"
+                    : "bg-[#e8f3eb] text-[#2f6b45]"
+                }`}
+              >
+                {isSold ? "품절" : "판매중"}
               </span>
               <span className="text-xs font-medium text-[#8f998c]">
                 {product.location} · {product.time}
@@ -92,6 +115,10 @@ async function ProductArticle({
 
         <dl className="mt-8 grid gap-3 rounded-2xl border border-[#edf1eb] bg-[#fbfcfa] p-5 text-sm sm:grid-cols-2">
           <div>
+            <dt className="text-xs font-bold tracking-wide text-[#97a095]">판매 상태</dt>
+            <dd className="mt-1 font-semibold text-[#384037]">{isSold ? "품절" : "판매중"}</dd>
+          </div>
+          <div>
             <dt className="text-xs font-bold tracking-wide text-[#97a095]">카테고리</dt>
             <dd className="mt-1 font-semibold text-[#384037]">{product.category}</dd>
           </div>
@@ -104,24 +131,24 @@ async function ProductArticle({
             <dd className="mt-1 font-semibold text-[#384037]">{product.time}</dd>
           </div>
           <div>
+            <dt className="text-xs font-bold tracking-wide text-[#97a095]">판매자</dt>
+            <dd className="mt-1 font-semibold text-[#384037]">
+              {product.sellerName || "판매자 정보 없음"}
+            </dd>
+          </div>
+          <div>
             <dt className="text-xs font-bold tracking-wide text-[#97a095]">관심</dt>
             <dd className="mt-1 font-semibold text-[#384037]">{product.likes}명</dd>
           </div>
         </dl>
 
-        <div className="mt-10 flex flex-wrap items-center gap-3 border-t border-[#edf0eb] pt-6">
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg bg-[#3c7653] px-5 text-sm font-bold text-white transition hover:bg-[#28583d]"
-            href="/market"
-          >
-            목록으로 돌아가기
-          </Link>
-          <Link
-            className="inline-flex h-11 items-center justify-center rounded-lg border border-[#dce6da] px-5 text-sm font-semibold text-[#687367] transition hover:bg-[#f8faf7]"
-            href="/"
-          >
-            홈으로
-          </Link>
+        <div className="mt-10 border-t border-[#edf0eb] pt-6">
+          <ProductActions
+            productId={product.id}
+            productTitle={product.title}
+            sellerId={product.sellerId}
+            status={product.status}
+          />
         </div>
       </div>
     </article>

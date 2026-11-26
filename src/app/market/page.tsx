@@ -9,6 +9,7 @@ import {
   type Product,
   type ProductSortOption,
 } from "../../lib/products";
+import { useFavorites } from "../../lib/use-favorites";
 
 type SortOption = ProductSortOption;
 
@@ -22,8 +23,11 @@ export default function MarketPage() {
   const [selectedCategory, setSelectedCategory] = useState("전체");
   const [selectedRegion, setSelectedRegion] = useState(allRegionsLabel);
   const [activeSort, setActiveSort] = useState<SortOption>("추천");
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const [cart, setCart] = useState<string[]>([]);
+  const {
+    favorites,
+    toggleFavorite,
+    error: favoriteError,
+  } = useFavorites();
 
   useEffect(() => {
     let active = true;
@@ -84,14 +88,6 @@ export default function MarketPage() {
     return sortProducts(filtered, activeSort);
   }, [activeSort, products, search, selectedCategory, selectedRegion]);
 
-  function toggleProduct(
-    ids: string[],
-    id: string,
-    update: (next: string[]) => void,
-  ) {
-    update(ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id]);
-  }
-
   function resetFilters() {
     setSearch("");
     setSelectedCategory("전체");
@@ -103,11 +99,7 @@ export default function MarketPage() {
     <div className="min-h-screen bg-[#f8f9f6] text-[#263229]">
       <Siteheader
         favoriteCount={favorites.length}
-        onFavoriteClick={() =>
-          document
-            .getElementById("market-grid")
-            ?.scrollIntoView({ behavior: "smooth" })
-        }
+        favoriteError={favoriteError}
         onSearchChange={setSearch}
         search={search}
       />
@@ -280,7 +272,6 @@ export default function MarketPage() {
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 xl:grid-cols-4">
                 {visibleProducts.map((product) => {
                   const isFavorite = favorites.includes(product.id);
-                  const isInCart = cart.includes(product.id);
 
                   return (
                     <article
@@ -304,12 +295,17 @@ export default function MarketPage() {
                         {product.images?.[0] ? (
                           <img
                             alt={product.title}
-                            className="h-full w-full object-cover"
+                            className={`h-full w-full object-cover ${product.status === "sold" ? "brightness-75" : ""}`}
                             src={product.images[0]}
                           />
                         ) : (
                           product.icon
                         )}
+                        {product.status === "sold" ? (
+                          <span className="absolute left-3 top-3 rounded-full bg-[#263229]/85 px-2.5 py-1 text-[10px] font-bold text-white">
+                            품절
+                          </span>
+                        ) : null}
                         <button
                           aria-label={isFavorite ? "찜 취소" : "찜하기"}
                           aria-pressed={isFavorite}
@@ -321,7 +317,7 @@ export default function MarketPage() {
                           onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
-                            toggleProduct(favorites, product.id, setFavorites);
+                            toggleFavorite(product.id);
                           }}
                           type="button"
                         >
@@ -345,23 +341,25 @@ export default function MarketPage() {
                             {formatPrice(product.price)}
                           </strong>
                           <button
-                            aria-pressed={isInCart}
+                            aria-pressed={isFavorite}
                             className={`rounded-md px-2 py-1.5 text-[10px] font-bold ${
-                              isInCart
-                                ? "bg-green-100 text-green-800"
+                              isFavorite
+                                ? "bg-rose-50 text-rose-600"
                                 : "bg-[#f3f5f1] text-[#485248] hover:bg-[#e9eee8]"
                             }`}
                             onClick={() =>
-                              toggleProduct(cart, product.id, setCart)
+                              toggleFavorite(product.id)
                             }
                             type="button"
                           >
-                            {isInCart ? "✓ 담김" : "+ 담기"}
+                            {isFavorite ? "♥ 찜함" : "♡ 찜"}
                           </button>
                         </div>
                         <div className="mt-3 flex justify-between border-t border-[#f0f1ee] pt-2 text-[10px] text-[#a0a69d]">
                           <span>{product.location} · {product.time}</span>
-                          <span>♡ {product.likes + Number(isFavorite)}</span>
+                          <span className={isFavorite ? "font-bold text-rose-500" : ""}>
+                            {isFavorite ? "♥" : "♡"} {product.likes + Number(isFavorite)}
+                          </span>
                         </div>
                       </div>
                     </article>

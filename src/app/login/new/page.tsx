@@ -1,26 +1,65 @@
 "use client";
 
 import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 export default function SignupPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [notice, setNotice] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setNotice("");
     const formData = new FormData(event.currentTarget);
-    const password = formData.get("password");
-    const passwordConfirmation = formData.get("passwordConfirmation");
+    const name = String(formData.get("name") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+    const passwordConfirmation = String(
+      formData.get("passwordConfirmation") ?? "",
+    );
 
     if (password !== passwordConfirmation) {
       setNotice("비밀번호가 서로 일치하지 않습니다.");
       return;
     }
 
-    setNotice(
-      "회원가입 서버가 아직 연결되지 않았습니다. 인증 API 연결 후 이용할 수 있어요.",
-    );
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password, passwordConfirmation }),
+      });
+      const responseData = (await response.json()) as { error?: string };
+
+      if (!response.ok) {
+        setNotice(responseData.error ?? "회원가입을 완료하지 못했어요.");
+        return;
+      }
+
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setNotice("회원가입은 완료됐지만 자동 로그인에 실패했어요. 로그인해 주세요.");
+        return;
+      }
+
+      router.replace("/");
+      router.refresh();
+    } catch {
+      setNotice("회원가입 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -186,10 +225,11 @@ export default function SignupPage() {
             </div>
 
             <button
-              className="mt-2 h-12 rounded-lg bg-[#3c7653] text-sm font-bold text-white transition hover:bg-[#28583d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c7653]"
+              className="mt-2 h-12 rounded-lg bg-[#3c7653] text-sm font-bold text-white transition hover:bg-[#28583d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c7653] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
               type="submit"
             >
-              회원가입
+              {isSubmitting ? "가입 중..." : "회원가입"}
             </button>
             <p
               aria-live="polite"

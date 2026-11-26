@@ -1,15 +1,51 @@
 "use client";
 
 import Link from "next/link";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
 export default function LoginPage() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [notice, setNotice] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const router = useRouter();
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setNotice("로그인 서버가 아직 연결되지 않았습니다. 인증 API 연결 후 이용할 수 있어요.");
+    setNotice("");
+    setIsSubmitting(true);
+
+    const formData = new FormData(event.currentTarget);
+    const email = String(formData.get("email") ?? "").trim();
+    const password = String(formData.get("password") ?? "");
+
+    try {
+      const result = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setNotice("이메일 또는 비밀번호를 확인해 주세요.");
+        return;
+      }
+
+      const callbackUrl = new URLSearchParams(window.location.search).get(
+        "callbackUrl",
+      );
+      const redirectTo =
+        callbackUrl?.startsWith("/") && !callbackUrl.startsWith("//")
+          ? callbackUrl
+          : "/";
+      router.replace(redirectTo);
+      router.refresh();
+    } catch {
+      setNotice("로그인 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -146,10 +182,11 @@ export default function LoginPage() {
             </div>
 
             <button
-              className="mt-1 h-12 rounded-lg bg-[#3c7653] text-sm font-bold text-white transition hover:bg-[#28583d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c7653]"
+              className="mt-1 h-12 rounded-lg bg-[#3c7653] text-sm font-bold text-white transition hover:bg-[#28583d] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c7653] disabled:cursor-not-allowed disabled:opacity-60"
+              disabled={isSubmitting}
               type="submit"
             >
-              로그인
+              {isSubmitting ? "로그인 중..." : "로그인"}
             </button>
             <p aria-live="polite" className="min-h-5 text-center text-xs text-[#a15c42]">
               {notice}
